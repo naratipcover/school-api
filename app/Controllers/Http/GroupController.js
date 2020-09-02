@@ -1,6 +1,8 @@
 'use strict'
 
 const Database = use('Database')
+const Group = use ('App/Models/Group')
+const Validator = use('Validator')
 
 function numberTypeParamValidator(number){
     if (Number.isNaN(parseInt(number))) 
@@ -16,38 +18,58 @@ class GroupController {
         return { status: 200,error: undefined, data:  group}
     }
 
-    async show ({request}) {
+    async show({ request }) {
         const { id } = request.params
-
-        const validateValue = numberTypeParamValidator(id)
-       
-        if (validateValue.error) 
-        return {status: 500, error: validateValue.error, data: undefined }
-
-        const groups = await Database
-            .select('*')
-            .from('create_groups')
-            .where("group_id",id)
-            .first()
-
-        return { status:200,data: groups || {}}
+    
+          const group = await Group.find(id)
+     
+        return { status:200,data: group || {}}
     }
 
-    async store({request}) {
+    async store ({ request }) {
         const { name } = request.body
-      
-      
-        const missingKeys = []
+    
+        const rules = {
+          name: 'required',
+        }
+    
+        const group = await Database
+          .table('create_groups')
+          .insert({ name })
+    
+        return { status: 200, error: undefined, data: { name } }
+      }
 
-        if(!name ) missingKeys.push('name')
-        if (missingKeys.length)
-            return { status: 422, error: `${missingKeys} is missing.`,data: undefined}
-
-        const teacher = await Database
+    async update({request}){
+        // const body = request.body
+        // const params = request.body เหมือนตัวด้านล่าง
+        const{ body,params } = request
+        const { id } = params
+        const { name } = body
+  
+        const groupId = await Database
+        .table ('create_groups')
+        .where ({ group_id: id })
+        .update ({ name })
+  
+        const group = await Database
+        .table ('create_groups')
+        .where ({ group_id: id })
+        .first()
+  
+      return {status: 200 , error: undefined, data: {group}}
+      }
+  
+      async destroy ({ request }) {
+          const { id } =request.params
+  
+          await Database
             .table('create_groups')
-            .insert({ name })
-        return { status: 200,error: undefined, data: { name }}
-    }
+            .where({ group_id: id })
+            .delete()
+          
+          return {status: 200 , error: undefined, data: { massage: 'success' }}
+      }
 }
 
 module.exports = GroupController
